@@ -5,3 +5,103 @@ date: "2024-09-25"
 output: github_document
 ---
 
+# Problem 1
+
+## Load libraries
+```{r}
+library(tidyverse)
+library(dplyr)
+```
+
+## Read and clean the data
+```{r}
+data_nyc_transit = read_csv("data_hw2/NYC_Transit_Subway_Entrance_And_Exit_Data.csv",
+                            na = c("NA", ".", "")) |>
+  janitor::clean_names() |>
+  select(line:entry, vending, ada)|>
+  mutate(entry = 
+           case_match(
+             entry,
+             "YES" ~ TRUE,
+             "NO" ~ FALSE
+           ),
+         across(route1:route11, as.numeric)) |>
+  pivot_longer(
+    cols = route1:route11,
+    names_to = "route_number",
+    values_to = "route_name",
+    names_prefix = "route"
+  )
+
+view(data_nyc_transit)
+glimpse(data_nyc_transit)
+
+```
+
+## **Q1:** 
+
+*Write a short paragraph about this dataset – explain briefly what variables the dataset contains, describe your data cleaning steps so far, and give the dimension (rows x columns) of the resulting dataset. Are these data tidy?* <br>
+
+**Answer:** <br>
+
+1.variables: <br>
+
+ - `r colnames(data_nyc_transit)`
+ 
+2.description of my data cleaning:<br>
+
+ - In the data cleaning process, I utilized the *janitor::clean_names()* to standardize column names, making them more manageable. 
+ 
+ - I then use *select()* to select relevant columns, specifically those from line to entry, along with vending and ada compliant. The entry variable was transformed from character values ("YES" and "NO") to logical values (TRUE and FALSE) using *case_match()*. 
+ 
+ - Additionally, the route columns (from route1 to route11) were converted to numeric format using *mutate(across())*. Then I reshaped the data using *pivot_longer()* to transform the wide format of route columns into a long format, making the dataset more suitable for viewing.
+
+ - As a result of these steps, the dataset has dimensions of `r dim(data_nyc_transit)[1]` rows and `r dim(data_nyc_transit)[2]` columns.
+ 
+3.The resulting dataset is considered tidy as each variable name is clear enough for analysis, easy-to-read, and reasonably categorized. However, further data tidy process could be done depending on the use of the dataset, such as separating data into several tables by different lines/entrance types/station names etc..
+
+## **Q2:** 
+
+*Answer the following questions using these data:*<br>
+
+- *How many distinct stations are there? Note that stations are identified both by name and by line (e.g. 125th St 8th Avenue; 125st Broadway; 125st Lenox); the distinct function may be useful here.*<br>
+
+**Coding**
+```{r}
+station_type = data_nyc_transit |>
+  count(line, station_name)
+```
+
+**Answer**
+
+There are `r dim(station_type)[1]` distinct stations.
+
+<br>
+
+- *How many stations are ADA compliant?*
+
+**Coding**
+```{r}
+ada_compliant = data_nyc_transit |>
+  distinct(line, station_name, ada) |>
+  filter (ada == TRUE)
+```
+
+**Answer**
+
+There are `r dim(ada_compliant)[1]` stations that are ADA compliant.
+
+<br>
+
+- *What proportion of station entrances / exits without vending allow entrance?*
+
+**Coding**
+```{r}
+prop_no_entrance = data_nyc_transit |>
+  count(vending)|>
+  mutate(proportion = n/dim(data_nyc_transit)[1])
+```
+
+**Answer**
+
+The proportion of station entrances without vendig allow entrance is `r prop_no_entrance[1,3]`.
