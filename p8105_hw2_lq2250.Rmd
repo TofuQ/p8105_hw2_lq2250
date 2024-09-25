@@ -23,9 +23,8 @@ data_nyc_transit = read_csv("data_hw2/NYC_Transit_Subway_Entrance_And_Exit_Data.
            case_match(
              entry,
              "YES" ~ TRUE,
-             "NO" ~ FALSE
-           ),
-         across(route1:route11, as.numeric)) |>
+             "NO" ~ FALSE),
+         across(route1:route11, as.character))|>
   pivot_longer(
     cols = route1:route11,
     names_to = "route_number",
@@ -38,7 +37,7 @@ glimpse(data_nyc_transit)
 
 ```
 
-## **Q1:** 
+## Q1: 
 
 *Write a short paragraph about this dataset – explain briefly what variables the dataset contains, describe your data cleaning steps so far, and give the dimension (rows x columns) of the resulting dataset. Are these data tidy?* <br>
 
@@ -60,7 +59,7 @@ glimpse(data_nyc_transit)
  
 3.The resulting dataset is considered tidy as each variable name is clear enough for analysis, easy-to-read, and reasonably categorized. However, further data tidy process could be done depending on the use of the dataset, such as separating data into several tables by different lines/entrance types/station names etc..
 
-## **Q2:** 
+## Q2:
 
 *Answer the following questions using these data:*<br>
 
@@ -105,3 +104,24 @@ prop_no_entrance = data_nyc_transit |>
 **Answer**
 
 The proportion of station entrances without vendig allow entrance is `r prop_no_entrance[1,3]`.
+
+<br>
+
+## Q3:
+
+*Reformat data so that route number and route name are distinct variables. How many distinct stations serve the A train? Of the stations that serve the A train, how many are ADA compliant?*
+
+**Coding**
+```{r}
+distinct_serve_A = data_nyc_transit |>
+  distinct(line, station_name,route_name)|>
+  filter(route_name == "A")
+
+serve_A_ada = data_nyc_transit |>
+  filter(route_name == "A")|>
+  count(route_name, ada)
+```
+**Answer**
+
+There are 60 distinct stations that serve A train. Of the stations that serve the A train, 107 are ADA compliant.
+
