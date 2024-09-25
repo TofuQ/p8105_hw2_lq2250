@@ -4,14 +4,13 @@ author: "Lanlan_Qing"
 date: "2024-09-25"
 output: github_document
 ---
-
-# Problem 1
-
-## Load libraries
+# Load libraries
 ```{r}
 library(tidyverse)
 library(dplyr)
+library(readxl)
 ```
+# Problem 1
 
 ## Read and clean the data
 ```{r}
@@ -125,3 +124,66 @@ serve_A_ada = data_nyc_transit |>
 
 There are 60 distinct stations that serve A train. Of the stations that serve the A train, 107 are ADA compliant.
 
+# Problem 2
+
+## Q1
+
+**Read and clean the Mr. Trash Wheel sheet**
+
+```{r}
+mr_trash_wheel = read_excel("data_hw2/202309 Trash Wheel Collection Data.xlsx", 
+                            sheet = "Mr. Trash Wheel",
+                            range = "A2:N586", 
+                            na = c("NA", ".",""))|>
+  janitor::clean_names()|>
+  select(month:homes_powered)|>
+  mutate(across(sports_balls, as.integer),
+         year = as.double(year),
+         wheel = "mr")
+```
+
+**Read and clean the Professor Trash Wheel Sheet**
+
+```{r}
+professor_trash_wheel = read_excel("data_hw2/202309 Trash Wheel Collection Data.xlsx", 
+                            sheet = "Professor Trash Wheel",
+                            range = "A2:M108",
+                            na = c("NA", ".",""))|>
+  janitor::clean_names()|>
+  select(month:homes_powered)|>
+  mutate(sports_balls = NA, .after = "wrappers",
+         across(sports_balls, as.integer),
+         wheel = "professor")
+```
+
+**Read and clean the Gwynnda Trash Wheel Sheet**
+
+```{r}
+gwynnda_trash_wheel = read_excel("data_hw2/202309 Trash Wheel Collection Data.xlsx", 
+                            sheet = "Gwynnda Trash Wheel",
+                            range = "A2:L157",
+                            na = c("NA", ".",""))|>
+  janitor::clean_names()|>
+  select(month:homes_powered)|>
+  mutate(sports_balls = NA, .after = "wrappers",
+         across(sports_balls, as.integer)) |>
+  mutate(glass_bottles = NA, .after = "cigarette_butts",
+         wheel = "gwynnda")
+```
+
+**Combine three sheets**
+
+```{r}
+trash_wheel_sheet = bind_rows(mr_trash_wheel, professor_trash_wheel, gwynnda_trash_wheel)|>
+  relocate(wheel)
+```
+
+*Write a paragraph about these data; you are encouraged to use inline R. Be sure to note the number of observations in the resulting dataset, and give examples of key variables. For available data, what was the total weight of trash collected by Professor Trash Wheel? What was the total number of cigarette butts collected by Gwynnda in June of 2022?*<br>
+
+1.The number of observations is `r dim(trash_wheel_sheet)[1]`.
+
+2.Key variables are: `r colnames(trash_wheel_sheet)`
+
+3.Total weight of trash collected by Professor Trash Wheel is: `r trash_wheel_sheet |> filter(wheel == "professor")|> select(weight_tons) |> sum()` tons.
+
+4.Total number of cigarette butts collected by Gwynnda in June of 2022 is `r as.integer(trash_wheel_sheet |> filter((wheel == "gwynnda") & (month == "June") & (year == 2022)) |> select(cigarette_butts) |> sum())`
