@@ -178,12 +178,79 @@ trash_wheel_sheet = bind_rows(mr_trash_wheel, professor_trash_wheel, gwynnda_tra
   relocate(wheel)
 ```
 
+## Q2
+
 *Write a paragraph about these data; you are encouraged to use inline R. Be sure to note the number of observations in the resulting dataset, and give examples of key variables. For available data, what was the total weight of trash collected by Professor Trash Wheel? What was the total number of cigarette butts collected by Gwynnda in June of 2022?*<br>
 
-1.The number of observations is `r dim(trash_wheel_sheet)[1]`.
+1.The number of observations is **`r dim(trash_wheel_sheet)[1]`**.
 
-2.Key variables are: `r colnames(trash_wheel_sheet)`
+2.Key variables are: **`r colnames(trash_wheel_sheet)`**.
 
-3.Total weight of trash collected by Professor Trash Wheel is: `r trash_wheel_sheet |> filter(wheel == "professor")|> select(weight_tons) |> sum()` tons.
+3.Total weight of trash collected by Professor Trash Wheel is: **`r trash_wheel_sheet |> filter(wheel == "professor")|> select(weight_tons) |> sum()`** tons.
 
-4.Total number of cigarette butts collected by Gwynnda in June of 2022 is `r as.integer(trash_wheel_sheet |> filter((wheel == "gwynnda") & (month == "June") & (year == 2022)) |> select(cigarette_butts) |> sum())`
+4.Total number of cigarette butts collected by Gwynnda in June of 2022 is **`r as.integer(trash_wheel_sheet |> filter((wheel == "gwynnda") & (month == "June") & (year == 2022)) |> select(cigarette_butts) |> sum())`**.
+
+# Problem 3
+
+## Q1
+
+**Data Cleaning**
+```{r}
+bakers <- read_csv("data_hw2/gbb_datasets/bakers.csv", na = c("NA", ".",""))|>
+  janitor::clean_names()|>
+  separate(data = _, baker_name, into = c("baker_first", "baker_last"), sep = " ")|>
+  relocate(baker_first)
+
+bakes <- read_csv("data_hw2/gbb_datasets/bakes.csv", na = c("NA", ".",""))|>
+  janitor::clean_names()|>
+  rename(baker_first = baker)|>
+  mutate(baker_first = case_match(
+    baker_first,
+    c("\"Jo\"") ~ "Jo",
+    .default = baker_first
+  ))|>
+  relocate(baker_first)
+
+results <- read_csv("data_hw2/gbb_datasets/results.csv", na = c("NA", ".",""),
+                    skip = 2)|>
+  janitor::clean_names()|>
+  rename(baker_first = baker)|>
+  relocate(baker_first)|>
+  add_row(baker_first = "Jo",series = 2, episode = 1,
+                   technical = NA, result = "WD")
+
+view(bakers)
+view(bakes)
+view(results)
+
+anti_join(bakers, bakes)
+anti_join(bakers, results)
+anti_join(bakes, results)
+
+```
+
+**Create a single dataset**
+
+```{r}
+bakers_infor = left_join(bakers, bakes)
+final_dataset = left_join(bakers_infor, results)|>
+  mutate(baker_full_name = paste(baker_first, baker_last, by = " "))|>
+  select(baker_full_name, baker_age, hometown, baker_occupation, series, episode,
+         signature_bake, show_stopper, technical, result)
+
+knitr::kable(final_dataset)
+```
+
+## Q2
+
+*Describe your data cleaning process, including any questions you have or choices you made. Briefly discuss the final dataset.*<br>
+
+- At the beginning, "read_csv()" was used to import three excel files data, and "janitor::clean_name()" was used to create analyzable variable names.
+
+- Then, while viewing the datasets, variable names of bakers' name were found to be different. Therefore, to easily combine the datasets, full-name of "baker_name" was separated into first_name and last_name, where first_name was taken use of, as only first names were shown in both "bakes" and "results" files.
+
+- Name format of "Jo" was found to be ""Jo"" in bakes. Quotes were deleted using "case_match()".
+
+- While comparing datasets of "bakes" and "results" using"anti_join()", candidate "Jo" wasn't found in "results", indicating the Withdraw (WD) status wasn't recorded into the results dataset. To give more comprehensive data, "WD" of "Jo" was added using "add_rows()" to the first episode (series2-episode1) Jo supposed to attend. NA in records for other episodes.
+
+- Finally, dataset "bakers" was typed on the left side of "left_join()" function for matching and combining the other two datasets.Since the full name of candidates were preferred, "baker_first" and "baker_last" columns were combined by "paste()" and more reasonable orders of variables (from baker's personal information to their attended episode and results of the competitions) were listed using "mutate()".
