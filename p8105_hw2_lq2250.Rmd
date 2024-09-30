@@ -323,9 +323,9 @@ avg_viewership_s5 <- viewers_clean|>
 **Answer**<br>
 
 
-The average viewership in Season 1 is: `r avg_viewership_s1`.<br>
+The average viewership in Season 1 is: **`r avg_viewership_s1`**.<br>
 
-The average viewership in Season 5 is: `r avg_viewership_s5`.
+The average viewership in Season 5 is: **`r avg_viewership_s5`**.
 
 
 
