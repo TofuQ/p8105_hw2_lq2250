@@ -72,7 +72,7 @@ station_type = data_nyc_transit |>
 
 **Answer**
 
-There are `r dim(station_type)[1]` distinct stations.
+There are **`r dim(station_type)[1]`** distinct stations.
 
 <br>
 
@@ -87,7 +87,7 @@ ada_compliant = data_nyc_transit |>
 
 **Answer**
 
-There are `r dim(ada_compliant)[1]` stations that are ADA compliant.
+There are **`r dim(ada_compliant)[1]`** stations that are ADA compliant.
 
 <br>
 
@@ -102,7 +102,7 @@ prop_no_entrance = data_nyc_transit |>
 
 **Answer**
 
-The proportion of station entrances without vendig allow entrance is `r prop_no_entrance[1,3]`.
+The proportion of station entrances without vendig allow entrance is **`r prop_no_entrance[1,3]`**.
 
 <br>
 
@@ -204,28 +204,31 @@ bakers <- read_csv("data_hw2/gbb_datasets/bakers.csv", na = c("NA", ".",""))|>
 bakes <- read_csv("data_hw2/gbb_datasets/bakes.csv", na = c("NA", ".",""))|>
   janitor::clean_names()|>
   rename(baker_first = baker)|>
-  mutate(baker_first = case_match(
+  mutate(baker_first = replace(
     baker_first,
-    c("\"Jo\"") ~ "Jo",
-    .default = baker_first
-  ))|>
-  relocate(baker_first)
+    baker_first =="\"Jo\"", "Jo"))|>
+  relocate(baker_first)|>
+  filter(baker_first != "Jo")|>
+  add_row(baker_first = "Jo",series = 2, episode = 1,
+                   signature_bake = NA, show_stopper = NA)
 
 results <- read_csv("data_hw2/gbb_datasets/results.csv", na = c("NA", ".",""),
                     skip = 2)|>
   janitor::clean_names()|>
   rename(baker_first = baker)|>
   relocate(baker_first)|>
+  filter(!is.na(result))|>
   add_row(baker_first = "Jo",series = 2, episode = 1,
                    technical = NA, result = "WD")
 
+# Check dataset
 view(bakers)
 view(bakes)
 view(results)
 
-anti_join(bakers, bakes)
+anti_join(bakes,bakers)
 anti_join(bakers, results)
-anti_join(bakes, results)
+anti_join(results, bakes)
 
 ```
 
@@ -234,11 +237,11 @@ anti_join(bakes, results)
 ```{r}
 bakers_infor = left_join(bakers, bakes)
 final_dataset = left_join(bakers_infor, results)|>
-  mutate(baker_full_name = paste(baker_first, baker_last, by = " "))|>
-  select(baker_full_name, baker_age, hometown, baker_occupation, series, episode,
+  mutate(baker = paste(baker_first, baker_last, by = " "))|>
+  select(baker, baker_age, hometown, baker_occupation, series, episode,
          signature_bake, show_stopper, technical, result)
 
-write.csv(final_dataset, file = file.path("data_hw2/gbb_datasets/"), "merged_data.csv")
+write.csv(final_dataset, file = file.path("data_hw2/gbb_datasets/", "merged_data.csv"))
 ```
 
 ## Q2
@@ -249,17 +252,81 @@ write.csv(final_dataset, file = file.path("data_hw2/gbb_datasets/"), "merged_dat
 
 - Uniform variable names: Then, while viewing the datasets, variable names of bakers' name were found to be different. Therefore, to easily combine the datasets, full-name of "baker_name" was separated into first_name and last_name, where first_name was taken use of, as only first names were shown in both "bakes" and "results" files.
 
-- Incompatible value correction: Name format of "Jo" was found to be ""Jo"" in bakes. Quotes were deleted using "case_match()".
+- Incompatible value correction: Name format of "Jo" was found to be ""Jo"" in bakes. Quotes were deleted using "replace()".
 
 - Missing data created: While comparing datasets of "bakes" and "results" using "anti_join()", candidate "Jo" wasn't found in "results", indicating the Withdraw (WD) status wasn't recorded into the results dataset. To give more comprehensive data, "WD" of "Jo" was added using "add_rows()" to the first episode (series2-episode1) Jo supposed to attend. NA in records for other episodes.
 
+- Missing data in bakes found: Two series(9-10) of bakes records and Joanne's bakes record were missing, which leads to miss-match between "bakes" and the other two dataset.Problems of completing data happened.
+
 - Merging datasets: Finally, dataset "bakers" was typed on the left side of "left_join()" function for matching and combining the other two datasets.Since the full name of candidates were preferred, "baker_first" and "baker_last" columns were combined by "paste()" and more reasonable orders of variables (from baker's personal information to their attended episode and results of the competitions) were listed using "mutate()".
 
+## Q3
 *Create a reader-friendly table showing the star baker or winner of each episode in Seasons 5 through 10. Comment on this table – were there any predictable overall winners? Any surprises?*
 
 ```{r}
-star_bakers_winners <- merged_data |>
-  filter(series >= 5, series <= 10, result %in% c("STAR BAKER", "WINNER")) |>
-  select(series, episode, baker) |>
+star_bakers_winners <- final_dataset |>
+  filter(series >= 5 & series <= 10 & result %in% c("STAR BAKER", "WINNER")) |>
+  select(series, episode, baker, result) |>
   arrange(series, episode)
+
+knitr::kable(star_bakers_winners)
+```
+
+**Comments on the table**
+
+- Season 5: Surprisingly, the final winner was Nancy, while Richard won five games in episodes 2, 4, 7, 8, and 9 as a predictable final winner. 
+
+- Season 6: Nadiya was the predictable winner wining 4 games in episodes 5, 8, 9, and 10 as the final winner.
+
+- Season 7: Candice is predictable by wining four episodes in episodes 2, 5, 8, and 10 as the final winner.
+
+- Season 8: Steven and Sophie both won 3 times, making it hard to predict, and the overall winner was Sophie.
+
+- Season 9: Rahul is the predictable winner winning three games in episodes 2, 3, and 10 as the final winner.
+
+- Season 10:  Steph is the predictable winner winning four games in episodes 4, 5, 6, and 8. However,surprisingly, the final winner was David, who didn't win for any one time in the previous 9 episodes.
+
+
+## Q4
+
+*Import, clean, tidy, and organize the viewership data in viewers.csv. Show the first 10 rows of this dataset. What was the average viewership in Season 1? In Season 5?*
+
+**Show the first 10 rows of this dataset.**
+```{r}
+viewers_clean <- read_csv("data_hw2/gbb_datasets/viewers.csv",na = c("NA", ".","")) |>
+  janitor::clean_names()|>
+  pivot_longer(cols = series_1:series_10, 
+               names_to = "series", 
+               names_prefix = "series_", 
+               values_to = "viewers")|>
+  mutate(series = as.integer(series))|>
+  arrange(series, episode)
+  
+viewers_top <- viewers_clean |>
+  head(10)|>
+  print()
+```
+
+**Calculate the average viewership**
+
+```{r}
+avg_viewership_s1 <- viewers_clean |>
+  filter(series == 1) |>
+  summarise(avg_viewers = mean(viewers, na.rm = TRUE))
+
+avg_viewership_s5 <- viewers_clean|>
+  filter(series == 5) |>
+  summarise(avg_viewers = mean(viewers, na.rm = TRUE))
+
+```
+
+**Answer**<br>
+
+
+The average viewership in Season 1 is: `r avg_viewership_s1`.<br>
+
+The average viewership in Season 5 is: `r avg_viewership_s5`.
+
+
+
 
