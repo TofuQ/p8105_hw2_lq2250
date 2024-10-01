@@ -207,19 +207,26 @@ bakes <- read_csv("data_hw2/gbb_datasets/bakes.csv", na = c("NA", ".",""))|>
   mutate(baker_first = replace(
     baker_first,
     baker_first =="\"Jo\"", "Jo"))|>
-  relocate(baker_first)|>
-  filter(baker_first != "Jo")|>
-  add_row(baker_first = "Jo",series = 2, episode = 1,
-                   signature_bake = NA, show_stopper = NA)
+  relocate(baker_first)
 
 results <- read_csv("data_hw2/gbb_datasets/results.csv", na = c("NA", ".",""),
                     skip = 2)|>
   janitor::clean_names()|>
   rename(baker_first = baker)|>
   relocate(baker_first)|>
+  mutate(baker_first = replace(
+    baker_first,
+    baker_first =="Joanne", "Jo"))|>
   filter(!is.na(result))|>
-  add_row(baker_first = "Jo",series = 2, episode = 1,
-                   technical = NA, result = "WD")
+  filter(!(baker_first == "Diana" & episode >= 5 & series == 5))
+
+bakes <- bakes|>
+  add_row(baker_first = (filter(results, series >= 9))$ baker_first,
+          series = rep(c(9,10),c(76,80)),
+          episode = (filter(results, series >= 9))$ episode,
+          signature_bake = NA,
+          show_stopper = NA )
+
 
 # Check dataset
 view(bakers)
@@ -235,7 +242,7 @@ anti_join(results, bakes)
 **Create a single dataset**
 
 ```{r}
-bakers_infor = left_join(bakers, bakes)
+bakers_infor = merge(bakers, bakes)
 final_dataset = left_join(bakers_infor, results)|>
   mutate(baker = paste(baker_first, baker_last, by = " "))|>
   select(baker, baker_age, hometown, baker_occupation, series, episode,
@@ -252,11 +259,11 @@ write.csv(final_dataset, file = file.path("data_hw2/gbb_datasets/", "merged_data
 
 - Uniform variable names: Then, while viewing the datasets, variable names of bakers' name were found to be different. Therefore, to easily combine the datasets, full-name of "baker_name" was separated into first_name and last_name, where first_name was taken use of, as only first names were shown in both "bakes" and "results" files.
 
-- Incompatible value correction: Name format of "Jo" was found to be ""Jo"" in bakes. Quotes were deleted using "replace()".
+- Incompatible value correction: Name format of "Jo" was found to be ""Jo"" in bakes. Quotes were deleted using "replace()". "Jo" was the same person as "Joanne" appeared only in the results dataset, thus changing of baker_first value from "Joanne" to "Jo" was made by "mutate()".
 
 - Missing data created: While comparing datasets of "bakes" and "results" using "anti_join()", candidate "Jo" wasn't found in "results", indicating the Withdraw (WD) status wasn't recorded into the results dataset. To give more comprehensive data, "WD" of "Jo" was added using "add_rows()" to the first episode (series2-episode1) Jo supposed to attend. NA in records for other episodes.
 
-- Missing data in bakes found: Two series(9-10) of bakes records and Joanne's bakes record were missing, which leads to miss-match between "bakes" and the other two dataset.Problems of completing data happened.
+- Missing data in bakes found: Two series(9-10) of bakes records and Joanne's bakes record were missing, which leads to miss-match between "bakes" and the other two dataset.Therefore, rows of series 9-10 bakes information were added by "add_row()" function based on the baker_first-series-episode data from results.
 
 - Merging datasets: Finally, dataset "bakers" was typed on the left side of "left_join()" function for matching and combining the other two datasets.Since the full name of candidates were preferred, "baker_first" and "baker_last" columns were combined by "paste()" and more reasonable orders of variables (from baker's personal information to their attended episode and results of the competitions) were listed using "mutate()".
 
