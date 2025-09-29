@@ -11,9 +11,8 @@ library(tidyverse)
 
 ## Problem 1
 
+### 1. Clean the data in pols-months.csv
 ```{r}
-# clean the data in pols-months.csv
-
 pols_clean = read.csv("data_538/pols-month.csv", na = c("NA",".","")) |>
   janitor::clean_names() |>
   separate(mon, into = c("year", "month", "day"), sep = "-") |>
@@ -35,10 +34,13 @@ pols_clean = read.csv("data_538/pols-month.csv", na = c("NA",".","")) |>
            ) |>
   mutate(
     president = if_else(prez_gop == 1, "gop","dem")) |>
-  select(-prez_dem, -prez_gop, -day)
+  select(-prez_dem, -prez_gop, -day)|>
+  arrange(year)
+```
 
-# clean the data in snp.csv
 
+### 2. Clean the data in pols-months.csv
+```{r}
 snp_clean = read.csv("data_538/snp.csv", na = c("NA",".","")) |>
   separate(date, into = c("month", "day", "year"), sep = "/") |>
   mutate(month = 
@@ -56,9 +58,22 @@ snp_clean = read.csv("data_538/snp.csv", na = c("NA",".","")) |>
                        "11" ~ "Nov", 
                        "12" ~ "Dec")
            ) |>
-  mutate(date = make_date(year = year, month = month, day = day)) |>
-  arrange(desc(date))|>
+  arrange(year) |>
   select(year, month, close, -day)
-  
+```
+
+### 3. Clean the data in unemployment.csv
+
+```{r}
+unemploy_read = read.csv("data_538/unemployment.csv", na = c("NA",".",""))
+
+unemploy_clean = 
+  pivot_longer(
+    unemploy_read,
+    Jan:Dec,
+    names_to = "month",
+    values_to = "percentage"
+  )|>
+  rename(year = Year)
 ```
 
