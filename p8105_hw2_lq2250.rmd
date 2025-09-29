@@ -20,12 +20,45 @@ pols_clean = read.csv("data_538/pols-month.csv", na = c("NA",".","")) |>
   mutate(month =
            case_match(
              month,
-             "01" ~ "Jan", "02" ~ "Feb", "03" ~ "Mar", "04" ~ "Apr", "05" ~ "May", "06" ~ "Jun", 
-             "07" ~ "Jul", "08" ~ "Aug", "09" ~ "Sep", "10" ~ "Oct", "11" ~ "Nov", "12" ~ "Dec")
+             "01" ~ "Jan", 
+             "02" ~ "Feb", 
+             "03" ~ "Mar", 
+             "04" ~ "Apr",
+             "05" ~ "May", 
+             "06" ~ "Jun", 
+             "07" ~ "Jul", 
+             "08" ~ "Aug", 
+             "09" ~ "Sep", 
+             "10" ~ "Oct", 
+             "11" ~ "Nov", 
+             "12" ~ "Dec")
            ) |>
   mutate(
     president = if_else(prez_gop == 1, "gop","dem")) |>
   select(-prez_dem, -prez_gop, -day)
+
+# clean the data in snp.csv
+
+snp_clean = read.csv("data_538/snp.csv", na = c("NA",".","")) |>
+  separate(date, into = c("month", "day", "year"), sep = "/") |>
+  mutate(month = 
+           case_match( month, 
+                       "1" ~ "Jan",
+                       "2" ~ "Feb", 
+                       "3" ~ "Mar",
+                       "4" ~ "Apr", 
+                       "5" ~ "May",
+                       "6" ~ "Jun", 
+                       "7" ~ "Jul", 
+                       "8" ~ "Aug", 
+                       "9" ~ "Sep", 
+                       "10" ~ "Oct", 
+                       "11" ~ "Nov", 
+                       "12" ~ "Dec")
+           ) |>
+  mutate(date = make_date(year = year, month = month, day = day)) |>
+  arrange(desc(date))|>
+  select(year, month, close, -day)
   
 ```
 
