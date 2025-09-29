@@ -5,3 +5,27 @@ date: "2025-09-29"
 output: github_document
 ---
 
+```{r}
+library(tidyverse)
+```
+
+## Problem 1
+
+```{r}
+# clean the data in pols-months.csv
+
+pols_clean = read.csv("data_538/pols-month.csv", na = c("NA",".","")) |>
+  janitor::clean_names() |>
+  separate(mon, into = c("year", "month", "day"), sep = "-") |>
+  mutate(month =
+           case_match(
+             month,
+             "01" ~ "Jan", "02" ~ "Feb", "03" ~ "Mar", "04" ~ "Apr", "05" ~ "May", "06" ~ "Jun", 
+             "07" ~ "Jul", "08" ~ "Aug", "09" ~ "Sep", "10" ~ "Oct", "11" ~ "Nov", "12" ~ "Dec")
+           ) |>
+  mutate(
+    president = if_else(prez_gop == 1, "gop","dem")) |>
+  select(-prez_dem, -prez_gop, -day)
+  
+```
+
