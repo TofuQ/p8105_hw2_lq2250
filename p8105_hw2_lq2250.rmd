@@ -5,15 +5,16 @@ date: "2025-09-29"
 output: github_document
 ---
 
-```{r}
+```{r message = FALSE}
 library(tidyverse)
+library(readxl)
 ```
 
 ## Problem 1
 
 ### 1. Clean the data in pols-months.csv
 ```{r}
-pols_clean = read.csv("data_538/pols-month.csv", na = c("NA",".","")) |>
+pols_clean = read_csv("data/pols-month.csv", na = c("NA",".","")) |>
   janitor::clean_names() |>
   separate(mon, into = c("year", "month", "day"), sep = "-") |>
   mutate(month =
@@ -41,7 +42,7 @@ pols_clean = read.csv("data_538/pols-month.csv", na = c("NA",".","")) |>
 
 ### 2. Clean the data in pols-months.csv
 ```{r}
-snp_clean = read.csv("data_538/snp.csv", na = c("NA",".","")) |>
+snp_clean = read_csv("data/snp.csv", na = c("NA",".","")) |>
   separate(date, into = c("month", "day", "year"), sep = "/") |>
   mutate(month = 
            case_match( month, 
@@ -64,7 +65,7 @@ snp_clean = read.csv("data_538/snp.csv", na = c("NA",".","")) |>
 
 ### 3. Clean the data in unemployment.csv
 ```{r}
-unemploy_read = read.csv("data_538/unemployment.csv", na = c("NA",".",""))
+unemploy_read = read_csv("data/unemployment.csv", na = c("NA",".",""))
 
 unemploy_clean = 
   pivot_longer(
@@ -97,9 +98,80 @@ While and after **cleaning the data**:
 
  - we removed *day* column from both "pols-months" and "snp" dataset, whereas no *day* exists in the "unemployment" dataset. By removing *day*, three tables can be better joined together.
  
- - for "snp" dataset, only data from **1950-2015** year are recorded; "unemployment" was recorded from **1948-2015**; pols" was recorded from **1947-2015**. All missing data from 1947-1949 in "snp" and "unemployment" were indicated as "NA" in the resulting dataset.
+ - for "snp" dataset, only data from 1950-2015 year are recorded; "unemployment" was recorded from 1948-2015; pols" was recorded from 1947-2015. All missing data from 1947-1949 in "snp" and "unemployment" were indicated as "NA" in the resulting dataset.
  
  - we transferred the columns of *Jan* - *Dec* in **unemployment** under *month* column for year-month mergability of three tables. 
+ 
+ - the cleaned datasets' dimensions are: pols : `r nrow(pols_clean)`x`r ncol(pols_clean)`; snp : `r nrow(snp_clean)`x `r ncol(snp_clean)`; unemployment : `r nrow(unemploy_clean)`x `r ncol(unemploy_clean)`
 
+## Problem 2
 
+### 1. Import and clean the data for Mr. Trash Wheel
+```{r}
+mr_xl = read_excel("data/trash_wheel.xlsx",
+           sheet = "Mr. Trash Wheel",
+           na = c("NA", ".",""),
+           range = "A2:N653") |>
+  janitor::clean_names() |>
+  rename(weight = weight_tons,
+         volume = volume_cubic_yards) |>
+  filter(!is.na(dumpster)) |>
+  mutate(sports_balls = as.integer(round(sports_balls))) |>
+  mutate(type = "mr") |>
+  select(-year, -month) |>
+  select(type, dumpster, date, everything())
+  
+```
 
+### 2. Import and clean the data for Professor Trash Wheel 
+```{r}
+prof_xl = read_excel("data/trash_wheel.xlsx",
+           sheet = "Professor Trash Wheel",
+           na = c("NA", ".",""),
+           range = "A2:M121") |>
+  janitor::clean_names() |>
+  rename(weight = weight_tons,
+         volume = volume_cubic_yards) |>
+  filter(!is.na(dumpster)) |>
+  mutate(sports_balls = NA) |>
+  mutate(type = "prof") |>
+  select(-year, -month) |>
+  select(type, dumpster, date, everything())
+  
+```
+
+### 3. Import and clean the data for Gwynnda Trash Wheel
+```{r}
+gwy_xl = read_excel("data/trash_wheel.xlsx",
+           sheet = "Gwynnda Trash Wheel",
+           na = c("NA", ".",""),
+           range = "A2:L265") |>
+  janitor::clean_names() |>
+  rename(weight = weight_tons,
+         volume = volume_cubic_yards) |>
+  filter(!is.na(dumpster))|>
+  mutate(glass_bottles = NA,
+         sports_balls = NA) |>
+  mutate(type = "gwy") |>
+  select(-year, -month) |>
+  select(type, dumpster, date, everything())
+  
+```
+
+### 4. Combine 3 tables
+```{r}
+combine_xl = bind_rows(prof_xl, gwy_xl, mr_xl) |>
+  separate(date, into = c("year", "month", "day"), sep = "-")
+```
+
+### 5. Interpretation
+
+ - The total number of observations is `r nrow(combine_xl)`.
+ 
+ - The key variables are `r colnames(combine_xl)`.
+ 
+ - The total weight collected by Professor Trash Wheel is: `r combine_xl |> filter(type == "prof") |> summarise(total = sum(weight, na.rm = TRUE)) |> pull(total)`
+ 
+ - The total number of cigarette butts collected by Gwynnda in June of 2022 is: `r combine_xl |> filter((year == "2022") & (month == "06")) |> summarise(total = sum(cigarette_butts, na.rm = TRUE)) |> pull(total)`
+ 
+## Problem 3
